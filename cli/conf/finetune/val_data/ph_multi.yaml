@@ -1,0 +1,10 @@
+_target_: uni2ts.data.builder.ConcatDatasetBuilder
+_args_:
+  - _target_: uni2ts.data.builder.simple.SimpleDatasetBuilder
+    dataset: Barilla_train
+  - _target_: uni2ts.data.builder.simple.SimpleDatasetBuilder
+    dataset: BazanSplitter_CL12_train
+  - _target_: uni2ts.data.builder.simple.SimpleDatasetBuilder
+    dataset: Pepsico_train
+  - _target_: uni2ts.data.builder.simple.SimpleDatasetBuilder
+    dataset: SSS_train

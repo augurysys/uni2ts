@@ -46,10 +46,10 @@ trainer:
   gradient_clip_algorithm: norm
 train_dataloader:
   _target_: uni2ts.data.loader.DataLoader
-  batch_size: 128
+  batch_size: 24
   batch_size_factor: 2.0
   cycle: true
-  num_batches_per_epoch: 100
+  num_batches_per_epoch: 1000
   shuffle: true
   num_workers: 11
   collate_fn:
@@ -65,7 +65,7 @@ train_dataloader:
   persistent_workers: true
 val_dataloader:
   _target_: uni2ts.data.loader.DataLoader
-  batch_size: 128
+  batch_size: 24
   batch_size_factor: 2.0
   cycle: false
   num_batches_per_epoch: null
