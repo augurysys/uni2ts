@@ -10,7 +10,7 @@ import datasets
 from datasets import Features, Sequence, Value
 
 
-base_dir = "data/SSS"
+base_dir = "data/BazanSplitter_CL12"
 
 for dset in ['train', 'test', 'val']:
     source_dir = os.path.join(base_dir, dset)
@@ -26,7 +26,7 @@ for dset in ['train', 'test', 'val']:
     with open(os.path.join(source_dir, "control-loop-config.json")) as f:
         control_loop_cfg = json.load(f)
 
-    context_length = 60  # control_loop_cfg['preprocess']['tsWindowSize']
+    context_length = control_loop_cfg['preprocess']['tsWindowSize']
     prediction_length = control_loop_cfg['preprocess']['labelValidation']['labelsMatrixSizeInMinutes']
 
     tag_ids = factory_metadata[factory_metadata.tag_type == "DV"].tag_id.tolist() + factory_metadata[factory_metadata.tag_type == "MV"].tag_id.tolist()
@@ -35,8 +35,8 @@ for dset in ['train', 'test', 'val']:
 
     def multivar_example_gen_func() -> Generator[dict[str, Any], None, None]:
         for i, timestamp in y_timestamps['timestamp'].items():
-            # if dset in ['val'] and i >= 100:
-            #     break
+            if dset in ['val'] and i >= 200:
+                break
             start_time = timestamp - pd.Timedelta(minutes=context_length)
             end_time = timestamp + pd.Timedelta(minutes=prediction_length)
             example = df[(df['timestamp'] >= start_time) & (df['timestamp'] < end_time)]

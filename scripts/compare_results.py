@@ -155,8 +155,8 @@ def compare_results(source_dir: str, checkpoint_path: str, context_length: int, 
     for tag in cv_tags:
         fig.add_trace(go.Scatter(x=predictions.index, y=predictions[f'true_{tag}'], mode='lines', name=f'{tag} true', line=dict(color="blue")), row=cv_tags.index(tag) + 1, col=1)
         if simulator_predictions_df is not None:
-            fig.add_trace(go.Scatter(x=simulator_predictions_df.index, y=simulator_predictions_df[f'pred_{tag}'], mode='lines', name=f'{tag} simulator predicted', line=dict(color="magenta")), row=cv_tags.index(tag) + 1, col=1)
-        fig.add_trace(go.Scatter(x=predictions.index, y=predictions[f'pred_{tag}'], mode='lines', name=f'{tag} predicted', line=dict(color="red")), row=cv_tags.index(tag) + 1, col=1)
+            fig.add_trace(go.Scatter(x=simulator_predictions_df.index, y=simulator_predictions_df[f'pred_{tag}'], mode='lines', name=f'{tag} predicted (simulator)', line=dict(color="magenta")), row=cv_tags.index(tag) + 1, col=1)
+        fig.add_trace(go.Scatter(x=predictions.index, y=predictions[f'pred_{tag}'], mode='lines', name=f'{tag} predictedb (zero shot)', line=dict(color="red")), row=cv_tags.index(tag) + 1, col=1)
         fig.add_trace(go.Scatter(x=finetuned_predictions.index, y=finetuned_predictions[f'pred_{tag}'], mode='lines', name=f'{tag} predicted (finetuned)', line=dict(color="green")), row=cv_tags.index(tag) + 1, col=1)
         fig.update_xaxes(title_text="Timestamp", row=cv_tags.index(tag) + 1, col=1)
         fig.update_yaxes(title_text=tag, row=cv_tags.index(tag) + 1, col=1)
@@ -194,6 +194,7 @@ def compare_results(source_dir: str, checkpoint_path: str, context_length: int, 
     )
 
     metrics_df = pd.DataFrame({'simulator': simulator_metrics, 'zero_shot': zero_shot_metrics, 'finetuned': finetuned_metrics})
+    metrics_df.to_csv(os.path.join(source_dir, 'metrics.csv'))
 
     print(metrics_df.to_markdown())
 
