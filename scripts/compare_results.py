@@ -18,6 +18,7 @@ def compare_results(source_dir: str, checkpoint_path: str, context_length: int, 
                     batch_size: int = 6, patch_size: (int|str) = "auto",
                     model_type: str = "moirai", model_size: str = "small", test_size: (int|None) = None):
     graphs_dir = os.path.join(source_dir, "graphs")
+    os.makedirs(graphs_dir, exist_ok=True)
 
     df = pd.read_parquet(os.path.join(source_dir, "extracted_features.parquet"))
     df['timestamp'] = pd.to_datetime(df['timestamp'])
@@ -33,14 +34,15 @@ def compare_results(source_dir: str, checkpoint_path: str, context_length: int, 
     mv_dv_tags = [str(c) for c in factory_cfg[factory_cfg.tag_type != "CV"].tag_id.unique()]
 
     try:
-        simulator_predictions_df = pd.read_csv(os.path.join(source_dir, "test_forecast_eval.csv.xz"))
+        simulator_predictions_df = pd.read_csv(os.path.join(source_dir, "test_forecast_eval.csv.xz"), parse_dates=['timestamp'])
         simulator_predictions_df = simulator_predictions_df[simulator_predictions_df.lookahead == prediction_length].set_index('timestamp').sort_index()
     except FileNotFoundError:
         simulator_predictions_df = None
 
+
     ds = PandasDataset(
         df,
-        target=cv_tags,
+        target=cv_tags if len(cv_tags) > 1 else cv_tags[0],
         timestamp="timestamp",
         feat_dynamic_real=mv_dv_tags,
         freq="1min",
@@ -119,21 +121,37 @@ def compare_results(source_dir: str, checkpoint_path: str, context_length: int, 
                 "lookahead": lookahead + 1,
             }
             for i, tag_id in enumerate(cv_tags):
-                prediction[f'true_{tag_id}'] = label['target'][i, lookahead]
-                prediction[f'pred_{tag_id}'] = np.median(forecast.samples[:, lookahead, i])
-                prediction[f'prctile_05_{tag_id}'] = np.percentile(forecast.samples[:, lookahead, i], 5)
-                prediction[f'prctile_95_{tag_id}'] = np.percentile(forecast.samples[:, lookahead, i], 95)
-                prediction[f'prctile_25_{tag_id}'] = np.percentile(forecast.samples[:, lookahead, i], 25)
-                prediction[f'prctile_75_{tag_id}'] = np.percentile(forecast.samples[:, lookahead, i], 75)
+                if len(cv_tags) == 1:
+                    prediction[f"true_{tag_id}"] = np.median(label['target'][lookahead])
+                    prediction[f"pred_{tag_id}"] = np.median(forecast.samples[:, lookahead])
+                    prediction[f"prctile_05_{tag_id}"] = np.percentile(forecast.samples[:, lookahead], 5)
+                    prediction[f"prctile_95_{tag_id}"] = np.percentile(forecast.samples[:, lookahead], 95)
+                    prediction[f"prctile_25_{tag_id}"] = np.percentile(forecast.samples[:, lookahead], 25)
+                    prediction[f"prctile_75_{tag_id}"] = np.percentile(forecast.samples[:, lookahead], 75)
+                else:
+                    prediction[f'true_{tag_id}'] = label['target'][i, lookahead]
+                    prediction[f'pred_{tag_id}'] = np.median(forecast.samples[:, lookahead, i])
+                    prediction[f'prctile_05_{tag_id}'] = np.percentile(forecast.samples[:, lookahead, i], 5)
+                    prediction[f'prctile_95_{tag_id}'] = np.percentile(forecast.samples[:, lookahead, i], 95)
+                    prediction[f'prctile_25_{tag_id}'] = np.percentile(forecast.samples[:, lookahead, i], 25)
+                    prediction[f'prctile_75_{tag_id}'] = np.percentile(forecast.samples[:, lookahead, i], 75)
             predictions.append(prediction)
             finetuned_prediction = copy.deepcopy(prediction)
             for i, tag_id in enumerate(cv_tags):
-                finetuned_prediction[f'true_{tag_id}'] = label['target'][i, lookahead]
-                finetuned_prediction[f'pred_{tag_id}'] = np.median(finetuned_forecast.samples[:, lookahead, i])
-                finetuned_prediction[f'prctile_05_{tag_id}'] = np.percentile(finetuned_forecast.samples[:, lookahead, i], 5)
-                finetuned_prediction[f'prctile_95_{tag_id}'] = np.percentile(finetuned_forecast.samples[:, lookahead, i], 95)
-                finetuned_prediction[f'prctile_25_{tag_id}'] = np.percentile(finetuned_forecast.samples[:, lookahead, i], 25)
-                finetuned_prediction[f'prctile_75_{tag_id}'] = np.percentile(finetuned_forecast.samples[:, lookahead, i], 75)
+                if len(cv_tags) == 1:
+                    finetuned_prediction[f'true_{tag_id}'] = label['target'][lookahead]
+                    finetuned_prediction[f'pred_{tag_id}'] = np.median(finetuned_forecast.samples[:, lookahead])
+                    finetuned_prediction[f'prctile_05_{tag_id}'] = np.percentile(finetuned_forecast.samples[:, lookahead], 5)
+                    finetuned_prediction[f'prctile_95_{tag_id}'] = np.percentile(finetuned_forecast.samples[:, lookahead], 95)
+                    finetuned_prediction[f'prctile_25_{tag_id}'] = np.percentile(finetuned_forecast.samples[:, lookahead], 25)
+                    finetuned_prediction[f'prctile_75_{tag_id}'] = np.percentile(finetuned_forecast.samples[:, lookahead], 75)
+                else:
+                    finetuned_prediction[f'true_{tag_id}'] = label['target'][i, lookahead]
+                    finetuned_prediction[f'pred_{tag_id}'] = np.median(finetuned_forecast.samples[:, lookahead, i])
+                    finetuned_prediction[f'prctile_05_{tag_id}'] = np.percentile(finetuned_forecast.samples[:, lookahead, i], 5)
+                    finetuned_prediction[f'prctile_95_{tag_id}'] = np.percentile(finetuned_forecast.samples[:, lookahead, i], 95)
+                    finetuned_prediction[f'prctile_25_{tag_id}'] = np.percentile(finetuned_forecast.samples[:, lookahead, i], 25)
+                    finetuned_prediction[f'prctile_75_{tag_id}'] = np.percentile(finetuned_forecast.samples[:, lookahead, i], 75)
             finetuned_predictions.append(finetuned_prediction)
         idx += 1
         if (idx % 100) == 0:
@@ -141,6 +159,9 @@ def compare_results(source_dir: str, checkpoint_path: str, context_length: int, 
 
     df_pred = pd.DataFrame(predictions)
     df_pred.to_csv(os.path.join(source_dir, 'predictions.csv'), index=False)
+
+    if simulator_predictions_df is not None:
+        simulator_predictions_df = simulator_predictions_df.loc[df_pred['timestamp'].min():df_pred['timestamp'].max()]
 
     df_finetuned_pred = pd.DataFrame(finetuned_predictions)
     df_finetuned_pred.to_csv(os.path.join(source_dir, 'finetuned_predictions.csv'), index=False)
@@ -169,7 +190,7 @@ def compare_results(source_dir: str, checkpoint_path: str, context_length: int, 
     actual_cols = [f'true_{tag}' for tag in cv_tags]
     pred_cols = [f'pred_{tag}'for tag in cv_tags]
 
-    simulator_metrics = performance_metrics(
+    simulator_metrics = dict() if simulator_predictions_df is None else performance_metrics(
         simulator_predictions_df[actual_cols].values,
         simulator_predictions_df[pred_cols].values,
         y_header=cv_tags,
@@ -198,15 +219,27 @@ def compare_results(source_dir: str, checkpoint_path: str, context_length: int, 
 
     print(metrics_df.to_markdown())
 
-source_dir = "data/SSS/test"
-checkpoint_path = "/home/dbarsky/Code/uni2ts/outputs/finetune/moirai_1.1_R_small/SSS_dynamic_feats_train/SSS_finetune/checkpoints/epoch=4-step=5000.ckpt"
+# source_dir = "data/SSS/test"
+# checkpoint_path = "/home/dbarsky/Code/uni2ts/outputs/finetune/moirai_1.1_R_small/SSS_dynamic_feats_train/SSS_finetune/checkpoints/epoch=4-step=5000.ckpt"
+# model_type = "moirai"  # model name: choose from {'moirai', 'moirai-moe'}
+# model_size = "small"  # model size: choose from {'small', 'base', 'large'}
+# prediction_length = 25  # prediction length: any positive integer
+# context_length = 60  # context length: any positive integer
+# patch_size = "auto"  # patch size: choose from {"auto", 8, 16, 32, 64, 128}
+# batch_size = 6  # batch size: any positive integer
+# test_length = None  # test set length: any positive integer
+
+source_dir = "data/Barilla/test"
+checkpoint_path = "/home/dbarsky/Code/uni2ts/outputs/finetune/moirai_1.1_R_small/Barilla_dynamic_feats_train/Barilla_finetune/checkpoints/epoch=28-step=29000.ckpt"
 model_type = "moirai"  # model name: choose from {'moirai', 'moirai-moe'}
 model_size = "small"  # model size: choose from {'small', 'base', 'large'}
-prediction_length = 25  # prediction length: any positive integer
+prediction_length = 30  # prediction length: any positive integer
 context_length = 60  # context length: any positive integer
 patch_size = "auto"  # patch size: choose from {"auto", 8, 16, 32, 64, 128}
 batch_size = 6  # batch size: any positive integer
 test_length = None  # test set length: any positive integer
+
+
 compare_results(source_dir=source_dir, checkpoint_path=checkpoint_path, context_length=context_length,
                 prediction_length=prediction_length, batch_size=batch_size, patch_size=patch_size,
                 model_type=model_type, model_size=model_size, test_size=test_length)

@@ -10,7 +10,7 @@ import datasets
 from datasets import Features, Sequence, Value
 
 
-base_dir = "data/BazanSplitter_CL12"
+base_dir = "data/Barilla"
 
 for dset in ['train', 'test', 'val']:
     source_dir = os.path.join(base_dir, dset)
@@ -35,7 +35,7 @@ for dset in ['train', 'test', 'val']:
 
     def multivar_example_gen_func() -> Generator[dict[str, Any], None, None]:
         for i, timestamp in y_timestamps['timestamp'].items():
-            if dset in ['val'] and i >= 200:
+            if dset in ['val'] and i >= 100:
                 break
             start_time = timestamp - pd.Timedelta(minutes=context_length)
             end_time = timestamp + pd.Timedelta(minutes=prediction_length)
@@ -67,7 +67,7 @@ for dset in ['train', 'test', 'val']:
     hf_dataset = datasets.Dataset.from_generator(
         multivar_example_gen_func, features=features
     )
-    hf_dataset.save_to_disk(os.path.join(base_dir,f"dataset_dynamic_feat/{dset}_small"))
+    hf_dataset.save_to_disk(os.path.join(base_dir,f"dataset_dynamic_feat/{dset}"))
 
 # ds_multi = datasets.load_from_disk(os.path.join(base_dir, "dataset/val")).with_format("numpy")
 # print(ds_multi[0]["target"].shape)
