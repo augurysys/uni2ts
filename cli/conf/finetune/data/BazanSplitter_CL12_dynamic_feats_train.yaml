@@ -1,0 +1,3 @@
+_target_: uni2ts.data.builder.simple.SimpleDatasetBuilder
+dataset: BazanSplitter_CL12_dynamic_feats_train
+weight: 1000
